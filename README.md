@@ -14,6 +14,8 @@ in the {shorts} README, and adds what a sport scientist working with tracking
 data needs: a configurable Kalman filter for raw positions and four methods
 for in-situ acceleration-speed profiles, including the hyperbolic envelope.
 
+🌐 **Project page:** https://clement0242.github.io/sprintfv/
+
 *Version française plus bas.*
 
 ```bash

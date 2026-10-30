@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sprintfv</title>
+<meta name="description" content="Sprint acceleration and force-velocity profiling in Python: radar, timing gates and GPS/LPS tracking. Samozino method, in-situ profiles, configurable Kalman filter, validated against the R package shorts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="projet.css">
+</head>
+<body>
+<header class="barre"><div class="enveloppe">
+  <a class="marque" href="https://clement0242.github.io"><b>CV</b> Clément Verdier</a>
+  <nav aria-label="Sections">
+    <a href="#start">Start</a><a href="#fvp">Force-velocity</a><a href="#insitu">In situ</a>
+    <a href="#kalman">Kalman</a><a href="#validation">Validation</a>
+  </nav>
+</div></header>
+
+<main>
+<div class="tete"><div class="enveloppe">
+  <p class="surtitre">Python library · sport science · biomechanics</p>
+  <h1>Sprint profiling, <em>in Python, tested</em></h1>
+  <p class="chapeau">From a radar gun, timing gates or GPS/LPS tracking to the acceleration and
+  force-velocity profile of a sprint: Samozino's method, the optimal profile, four in-situ methods and a
+  Kalman filter you can tune. Checked number for number against the R reference, {shorts}.</p>
+  <div class="boutons">
+    <a class="bouton" href="https://github.com/Clement0242/sprintfv">Code on GitHub</a>
+    <a class="bouton creux" href="#start">Get started</a>
+  </div>
+  <div class="chiffres">
+    <div><b>33</b><span>tests, run on Python 3.10, 3.12 and 3.13 on every push</span></div>
+    <div><b>100 %</b><span>of the values published in the {shorts} README recovered</span></div>
+    <div><b>10<sup>−12</sup></b><span>largest gap between its Kalman filter and filterpy's</span></div>
+    <div><b>2</b><span>dependencies: NumPy and SciPy</span></div>
+  </div>
+</div></div>
+
+<section id="start"><div class="enveloppe">
+  <p class="etiq">Get started</p>
+  <h2>Five lines from a radar to a profile</h2>
+<pre><code>pip install git+https://github.com/Clement0242/sprintfv
+
+import sprintfv as s
+d   = s.load_jb_morin()                                  # a radar sprint shared by J-B. Morin
+fit = s.fit_radar(d["time"], d["velocity"])              # MSS 9.21 m/s, MAC 6.92 m/s²
+fv  = s.force_velocity_profile(fit.mss, fit.mac, body_mass=75, body_height=1.72)
+opt = s.optimal_profile(fv, distance=30)                 # FV imbalance +44 %: train velocity</code></pre>
+  <div class="prose"><p>Or from the command line:
+  <code>sprintfv radar sprint.csv --mass 75 --height 1.72 --distance 30 --clean</code>.</p></div>
+</div></section>
+
+<section id="fvp"><div class="enveloppe">
+  <p class="etiq">Force-velocity profile</p>
+  <h2>Samozino's method, with the air</h2>
+  <div class="prose"><p>The sprint is fitted by the mono-exponential model, whose distance, acceleration and time
+  to any distance have exact closed forms (the latter through the Lambert W function). The horizontal force adds
+  the athlete's mass times acceleration to air resistance; its linear relation with velocity gives
+  <strong>F0, V0 and Pmax</strong>, and the ratio of forces gives <strong>RFmax and DRF</strong>, the orientation
+  of force. The optimal profile for a distance is simulated numerically, so air resistance can be kept.</p></div>
+  <figure><div class="feuille"><img src="radar_fvp.png" alt="Left: radar sprint and fitted velocity curve. Right: horizontal force and power against velocity, F0 6.83 N/kg, V0 9.60 m/s, Pmax 16.4 W/kg." width="1500" height="570" loading="lazy"></div>
+  <figcaption>Morin's sample sprint: the fit (left), then the force and power against velocity (right).</figcaption></figure>
+</div></section>
+
+<section id="insitu"><div class="enveloppe">
+  <p class="etiq">In-situ profiles</p>
+  <h2>A profile without a sprint test</h2>
+  <div class="prose"><p>From training or match tracking data, the profile is the upper envelope of everything the
+  athlete did. Four methods: <strong>linear</strong> (Morin et al. 2021), <strong>hyperbolic</strong>
+  (F. Fenaux &amp; C. Verdier), <strong>Tukey fences</strong> and <strong>prediction interval</strong>.
+  The hyperbolic envelope bends down at low speed, where nobody produces a maximal acceleration in a game,
+  and so separates the extrapolated A0 from the peak actually produced.</p></div>
+  <figure><div class="feuille"><img src="in_situ_methods.png" alt="Four panels of speed against acceleration for one basketball practice, each with the profile of one method." width="2085" height="558" loading="lazy"></div>
+  <figcaption>One 95-minute basketball practice (LPS, 20 Hz), from raw positions to four profiles.</figcaption></figure>
+  <div class="constat"><p>An in-situ profile complements a sprint test; it does not replace it.</p>
+  <p>In the master's thesis these tools come from (22 elite youth basketball players), the maximal acceleration
+  estimated in games was 18 to 27 % higher than in a 28 m sprint, while maximal speed agreed.</p></div>
+</div></section>
+
+<section id="kalman"><div class="enveloppe">
+  <p class="etiq">Kalman filter</p>
+  <h2>Every parameter in your hands</h2>
+  <div class="prose"><p>Differentiating positions twice amplifies noise. A Kalman filter estimates position,
+  velocity, acceleration and jerk together; the RTS smoother then uses the samples after each instant as well
+  as before. <code>KalmanParams</code> exposes the order, process noise, measurement noise, initial state and
+  smoothing; <code>positions_to_kinematics</code> adds resampling, gaps, segments, court bounds and an optional
+  Butterworth pre-filter.</p></div>
+<pre><code>k = s.positions_to_kinematics(t, x, y, kalman=s.KalmanParams(order=4, process_var=5, measurement_std=0.05),
+                              prefilter_hz=1.0, bounds=(-2, 32, -2, 17))
+v, a = k.profile_points()
+s.fit_in_situ(v, a, method="hyperbolic", lambda_divisor=3000)</code></pre>
+  <figure><div class="feuille"><img src="kalman_process_var.png" alt="Acceleration over eight seconds for three values of the process noise: the higher it is, the closer the estimate follows the data." width="1500" height="480" loading="lazy"></div>
+  <figcaption><code>process_var</code> sets how closely the estimate follows the data.</figcaption></figure>
+</div></section>
+
+<section id="validation"><div class="enveloppe">
+  <p class="etiq">Validation</p>
+  <h2>Checked against three references</h2>
+  <div class="tableau"><table>
+    <thead><tr><th>Reference</th><th>What is compared</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>{shorts} (R, Jovanović)</td><td>Timing gates with and without corrections, radar with and without observed MSS, force-velocity profile (F0 635 N, V0 8.85 m/s, Pmax 1405 W)</td><td><span class="pastille ok">identical</span></td></tr>
+      <tr><td>filterpy</td><td>Kalman filter and RTS smoother, same settings</td><td><span class="pastille ok">gap &lt; 1e-12</span></td></tr>
+      <tr><td>Production code of a federation app</td><td>Hyperbolic method on the sample session: inliers and parameters</td><td><span class="pastille ok">identical</span></td></tr>
+      <tr><td>Simulated sprints</td><td>Recovery of known MSS, MAC, time correction and flying distance under noise</td><td><span class="pastille ok">within 0.5–2 %</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="prose"><p>References: Samozino et al. 2016 and 2022 (Scand J Med Sci Sports), Morin et al. 2021
+  (J Biomech), Arsac &amp; Locatelli 2002 (J Appl Physiol), Jovanović, {shorts} (CRAN). Sample data from {shorts}, MIT.</p></div>
+</div></section>
+</main>
+
+<footer><div class="enveloppe">
+  <a href="https://clement0242.github.io">Clément Verdier</a> · data engineer &amp; sport scientist ·
+  <a href="https://github.com/Clement0242/sprintfv">source</a> · MIT licence
+</div></footer>
+</body>
+</html>
