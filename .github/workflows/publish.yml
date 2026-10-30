@@ -1,0 +1,19 @@
+# Publishes to PyPI when a GitHub release is created, with "trusted publishing"
+# (no token stored): declare this repository as a trusted publisher on pypi.org first.
+name: publish
+on:
+  release:
+    types: [published]
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build && python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
