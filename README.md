@@ -51,7 +51,7 @@ sprintfv insitu session.csv --method hyperbolic --process-var 5
 | `fvp` | Samozino et al. (2016) force-velocity-power profile with air resistance (F0, V0, Pmax, SFV, RFmax, DRF); the analytic variant identical to {shorts}; the optimal profile over a distance and the FV imbalance (Samozino et al. 2022), simulated numerically so air resistance can be kept |
 | `signal` | Cleaning of raw radar traces (km/h detection, isolated zeros, rolling outliers, zero-phase Butterworth) and detection of the end of the acceleration phase |
 | `kalman` | Positions → speed and acceleration: Kalman filter + RTS smoother on a chain of integrators, **every parameter exposed** (`KalmanParams`), gaps, segments, court bounds, optional Butterworth pre-filter |
-| `insitu` | Acceleration-speed profile from training or match data, four methods: `linear` (Morin et al. 2021), `hyperbolic` (F. Fenaux), `tukey`, `prediction_interval` |
+| `insitu` | Acceleration-speed profile from training or match data, four methods: `linear` (Morin et al. 2021), `hyperbolic` (F. Fenaux & C. Verdier), `tukey`, `prediction_interval` |
 
 ## In-situ profiles: four methods on one practice
 
@@ -69,7 +69,7 @@ for method in s.IN_SITU_METHODS:
     print(s.fit_in_situ(v, a, method=method).summary())
 ```
 
-**The hyperbolic method** (F. Fenaux) chooses inliers by density above the
+**The hyperbolic method** (F. Fenaux & C. Verdier) chooses inliers by density above the
 line a = 5 − v, then fits the upper envelope by minimising
 λ · (area under the curve) + (number of points above it). It first fits a
 linear-exponential curve, then the hyperbolic-exponential one from it:
@@ -135,7 +135,7 @@ GPS/LPS d'entraînement et de match.
   positions brutes à la vitesse et à l'accélération. Il est identique à
   `filterpy` dans les tests.
 * **Profil in situ, quatre méthodes** : linéaire (Morin 2021), **hyperbolique**
-  (F. Fenaux, enveloppe robuste qui sépare l'ordonnée à l'origine A0 du pic
+  (F. Fenaux et C. Verdier, enveloppe robuste qui sépare l'ordonnée à l'origine A0 du pic
   réellement produit), Tukey et intervalle de prédiction. Chaque constante est
   un paramètre.
 * **Nettoyage du signal radar** (km/h, zéros isolés, valeurs aberrantes,

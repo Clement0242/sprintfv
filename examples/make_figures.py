@@ -43,7 +43,7 @@ d = s.load_lps_session()
 k = s.positions_to_kinematics(d["time"], d["x"], d["y"], bounds=(-2, 32, -2, 17))
 v, a = k.profile_points()
 fig, axes = plt.subplots(1, 4, figsize=(14, 3.6), sharey=True)
-names = {"linear": "Linear (Morin 2021)", "hyperbolic": "Hyperbolic (Fenaux)",
+names = {"linear": "Linear (Morin 2021)", "hyperbolic": "Hyperbolic (Fenaux & Verdier)",
          "tukey": "Tukey fences", "prediction_interval": "Prediction interval"}
 for ax, method in zip(axes, s.IN_SITU_METHODS):
     p = s.fit_in_situ(v, a, method=method)

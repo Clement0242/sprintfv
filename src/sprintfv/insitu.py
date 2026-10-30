@@ -8,8 +8,8 @@ No sprint test is needed: the profile is the *upper envelope* of the
     0.2 m/s band, above the speed of the single highest acceleration, then a
     straight line. Intercept = A0, x-intercept = S0.
 ``"hyperbolic"``
-    The robust envelope method of F. Fenaux (HypExp), used in the master's
-    thesis this package comes from. Inliers are chosen by density
+    The robust envelope method (HypExp) of F. Fenaux and C. Verdier, used in
+    the master's thesis this package comes from. Inliers are chosen by density
     (k-nearest-neighbours) above the line a = 5 - v; then a curve is fitted by
     minimising  lambda * area under the curve + number of points above it,
     first a linear-exponential curve (LinExp), then the hyperbolic-exponential
