@@ -50,10 +50,40 @@ sprintfv insitu session.csv --method hyperbolic --process-var 5
 |---|---|
 | `model` | Mono-exponential sprint model, in closed form: v(t), x(t), a(t) and t(x) through the Lambert W function |
 | `fit` | `fit_radar` (with time correction, or MSS fixed to the observed peak) and `fit_splits` (no correction, time correction or flying-start distance), with standard errors |
-| `fvp` | Samozino et al. (2016) force-velocity-power profile with air resistance (F0, V0, Pmax, SFV, RFmax, DRF); the analytic variant identical to {shorts}; the optimal profile over a distance and the FV imbalance (Samozino et al. 2022), simulated numerically so air resistance can be kept |
+| `fvp` | Samozino et al. (2016) force-velocity-power profile with air resistance (F0, V0, Pmax, SFV, RFmax, DRF), model-based or **direct from a sensor trace** (`force_velocity_from_trace`); the analytic variant identical to {shorts}; the optimal profile over a distance and the FV imbalance (Samozino et al. 2022), simulated numerically so air resistance can be kept |
 | `signal` | Cleaning of raw radar traces (km/h detection, isolated zeros, rolling outliers, zero-phase Butterworth) and detection of the end of the acceleration phase |
 | `kalman` | Positions → speed and acceleration: Kalman filter + RTS smoother on a chain of integrators, **every parameter exposed** (`KalmanParams`), gaps, segments, court bounds, optional Butterworth pre-filter |
 | `insitu` | Acceleration-speed profile from training or match data, four methods: `linear` (Morin et al. 2021), `hyperbolic` (F. Fenaux & C. Verdier), `tukey`, `prediction_interval` |
+
+## Two routes to the force-velocity profile
+
+**Model-based**, the "simple method" of Samozino et al. (ISB 2013; *Scand J Med
+Sci Sports* 2016). The mono-exponential model is fitted to as few as 5 split
+times or to a radar trace, the horizontal force is derived from the model, and
+the linear F-v regression gives F0, V0 and Pmax. Use it with timing gates.
+
+```python
+fit = s.fit_splits([10, 15, 20, 30, 40], [1.89, 2.54, 3.15, 4.31, 5.44])
+fv = s.force_velocity_profile(fit.mss, fit.mac, body_mass=60)
+```
+
+**Direct.** When a sensor gives the speed itself (radar, laser, LPS/GPS), the
+force is computed from the *measured* speed and its derivative (or from the
+sensor's acceleration, or a Kalman filter's), and the linear regression is
+fitted to those points. No exponential shape is imposed, and the R² is an
+actual test of how linear the profile is.
+
+```python
+c = s.clean_radar(t, v)                                   # optional Butterworth
+fv = s.force_velocity_from_trace(c.time, c.velocity, body_mass=75, body_height=1.72)
+```
+
+![Two routes](docs/fv_two_routes.png)
+
+On Morin's sample sprint the direct route gives a higher F0 (7.7 against
+6.8 N/kg), because the exponential model smooths the first steps, where the
+measured acceleration is stronger. On a simulated sprint the two routes agree
+within 3 %. Both are kept on purpose: comparing them is informative.
 
 ## In-situ profiles: four methods on one practice
 
@@ -98,7 +128,7 @@ profile is a monitoring tool that complements a sprint test, not a substitute.
 
 ## Validation
 
-`pytest` runs 33 tests. They include:
+`pytest` runs 38 tests. They include:
 
 * **Against {shorts}:** the README values for timing gates (with and without
   corrections), radar (with and without observed MSS) and the force-velocity
@@ -111,6 +141,7 @@ profile is a monitoring tool that complements a sprint test, not a substitute.
 
 ## References
 
+* Samozino P. et al. (2013). A simple method for measuring power, force and velocity properties of sprint running. ISB 2013, long abstract.
 * Samozino P. et al. (2016). A simple method for measuring power, force, velocity properties, and mechanical effectiveness in sprint running. *Scand J Med Sci Sports* 26, 648–658.
 * Samozino P. et al. (2022). Optimal mechanical force-velocity profile for sprint acceleration performance. *Scand J Med Sci Sports* 32, 559–575.
 * Morin J-B. et al. (2021). Individual acceleration-speed profile in-situ: a proof of concept in professional football players. *J Biomech* 123, 110524.

@@ -72,3 +72,23 @@ ax.legend(frameon=False, ncol=3)
 fig.tight_layout()
 fig.savefig(OUT / "kalman_process_var.png")
 print("figures written to", OUT)
+
+# 4. Two routes to the force-velocity profile ---------------------------------------
+m = s.load_jb_morin()
+f = s.fit_radar(m["time"], m["velocity"])
+model_fv = s.force_velocity_profile(f.mss, f.mac, body_mass=75, body_height=1.72)
+direct_fv = s.force_velocity_from_trace(m["time"], m["velocity"], body_mass=75, body_height=1.72)
+fig, ax = plt.subplots(figsize=(7.2, 4.0))
+tab = direct_fv.table
+ax.plot(tab["velocity"], tab["force"] / 75, ".", color=GREY, ms=5, label="measured speed → force (direct)")
+vv = np.linspace(0, max(model_fv.v0, direct_fv.v0), 50)
+ax.plot(vv, direct_fv.f0_rel * (1 - vv / direct_fv.v0), color=ORANGE, lw=2,
+        label=f"direct: F0 {direct_fv.f0_rel:.2f} N/kg, V0 {direct_fv.v0:.2f} m/s, R² {direct_fv.r2:.2f}")
+ax.plot(vv, model_fv.f0_rel * (1 - vv / model_fv.v0), color=BLUE, lw=2,
+        label=f"mono-exponential model: F0 {model_fv.f0_rel:.2f} N/kg, V0 {model_fv.v0:.2f} m/s")
+ax.set(xlabel="velocity (m/s)", ylabel="horizontal force (N/kg)", xlim=(0, 10), ylim=(0, 10),
+       title="Same sprint, two routes: the model smooths the first steps")
+ax.legend(frameon=False, fontsize=8.5, loc="upper right")
+fig.tight_layout()
+fig.savefig(OUT / "fv_two_routes.png")
+print("fv_two_routes.png")

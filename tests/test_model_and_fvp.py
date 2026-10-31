@@ -79,3 +79,44 @@ def test_input_validation():
         s.fit_splits([5, 10, 20], [1.1, 1.9, 3.1], correction="nope")
     with pytest.raises(ValueError):
         model.time_at_velocity(10.0, 9.0, 8.0)
+
+
+# ------------------------------------------------------- direct route (sensor trace)
+
+def test_direct_route_equals_model_on_an_exact_exponential_sprint():
+    t = np.arange(0, 6, 0.01)
+    v = model.velocity_at_time(t, 9.0, 8.0)
+    direct = s.force_velocity_from_trace(t, v, 75, until=0.99, v_start=0.0)
+    ref = s.force_velocity_profile(9.0, 8.0, 75)
+    assert direct.f0 == pytest.approx(ref.f0, rel=0.01)
+    assert direct.v0 == pytest.approx(ref.v0, rel=0.01)
+    assert direct.r2 > 0.999
+
+
+def test_direct_route_with_the_sensor_acceleration():
+    t = np.arange(0, 6, 0.02)
+    v, a = model.velocity_at_time(t, 9.0, 8.0), model.acceleration_at_time(t, 9.0, 8.0)
+    p = s.force_velocity_from_trace(t, v, 75, acceleration=a)
+    assert p.f0_rel == pytest.approx(8.0, rel=0.02)
+
+
+def test_direct_route_on_a_noisy_radar():
+    jim = s.load_radar_gun("Jim")
+    fit = s.fit_radar(jim["time"], jim["velocity"])
+    ref = s.force_velocity_profile(fit.mss, fit.mac, 75)
+    c = s.clean_radar(jim["time"], jim["velocity"], cutoff_hz=1.5)
+    p = s.force_velocity_from_trace(c.time, c.velocity, 75)
+    assert p.f0 == pytest.approx(ref.f0, rel=0.04)
+    assert p.v0 == pytest.approx(ref.v0, rel=0.03)
+
+
+def test_direct_route_reports_linearity_on_a_real_sprint():
+    m = s.load_jb_morin()
+    p = s.force_velocity_from_trace(m["time"], m["velocity"], 75, body_height=1.72)
+    assert 0.7 < p.r2 < 1.0          # a real sprint is not a perfect line
+    assert 7.0 < p.f0_rel < 8.5      # higher than the exponential model's 6.8 N/kg
+
+
+def test_direct_route_needs_an_acceleration_phase():
+    with pytest.raises(ValueError):
+        s.force_velocity_from_trace(np.arange(0, 1, 0.1), np.full(10, 5.0), 75)

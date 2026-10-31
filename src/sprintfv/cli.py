@@ -29,12 +29,16 @@ def _columns(path: str, *names: str) -> list[np.ndarray]:
     return [np.array([float(r[n]) if r[n] not in ("", "NA") else np.nan for r in rows]) for n in names]
 
 
-def _profile(args, f: fit.SprintFit) -> None:
+def _profile(args, f: fit.SprintFit, trace=None) -> None:
     print(f.summary())
     if args.mass:
-        p = fvp.force_velocity_profile(f.mss, f.mac, args.mass, body_height=args.height,
-                                       air_temperature=args.temperature,
-                                       barometric_pressure=args.pressure, method=args.fv_method)
+        air = dict(body_height=args.height, air_temperature=args.temperature, barometric_pressure=args.pressure)
+        if args.fv_method == "direct":
+            if trace is None:
+                sys.exit("--fv-method direct needs a speed trace (radar), not split times")
+            p = fvp.force_velocity_from_trace(*trace, args.mass, **air)
+        else:
+            p = fvp.force_velocity_profile(f.mss, f.mac, args.mass, method=args.fv_method, **air)
         print(p.summary())
         if args.distance:
             o = fvp.optimal_profile(p, args.distance)
@@ -51,7 +55,8 @@ def main(argv: list[str] | None = None) -> None:
         p.add_argument("--height", type=float, default=1.75, help="body height (m)")
         p.add_argument("--temperature", type=float, default=25.0, help="air temperature (°C)")
         p.add_argument("--pressure", type=float, default=760.0, help="barometric pressure (mmHg)")
-        p.add_argument("--fv-method", choices=["samozino", "analytic"], default="samozino")
+        p.add_argument("--fv-method", choices=["samozino", "analytic", "direct"], default="samozino",
+                       help="direct: force from the measured speed itself, no exponential model (radar only)")
         p.add_argument("--distance", type=float, help="distance (m) for the optimal profile")
 
     r = sub.add_parser("radar", help="radar or laser gun: time, velocity")
@@ -91,7 +96,7 @@ def main(argv: list[str] | None = None) -> None:
             end = signal.acceleration_end(c.time, c.velocity)
             ok = np.isfinite(c.velocity[:end + 1])
             t, v = c.time[:end + 1][ok], c.velocity[:end + 1][ok]
-        _profile(args, fit.fit_radar(t, v, use_observed_mss=args.observed_mss))
+        _profile(args, fit.fit_radar(t, v, use_observed_mss=args.observed_mss), trace=(t, v))
     elif args.command == "splits":
         d, t = _columns(args.file, args.distance_col, args.time_col)
         _profile(args, fit.fit_splits(d, t, correction=args.correction))

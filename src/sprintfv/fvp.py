@@ -11,15 +11,26 @@ with velocity: its intercept is F0, its x-intercept V0, Pmax = F0·V0/4.
 The ratio of forces RF = F_H / sqrt(F_H² + (m·g)²) tells how much of the total
 force is oriented forward; its decrease with speed (DRF) describes technique.
 
-Two methods:
+Two routes to the same profile:
 
-``"samozino"`` (default)
-    Linear regression of F_H on v, sampled every ``dt`` from 0 to the time
-    the athlete reaches ``until`` × MSS. This is the original computation.
-``"analytic"``
-    F0 is the force at v = 0 and V0 the exact root of F_H(v) = 0. Identical
-    to {shorts} ``create_FVP()``, used in the tests to check this package
-    against the R implementation.
+* **Model-based** (:func:`force_velocity_profile`), the "simple method" of
+  Samozino et al. (ISB 2013; Scand J Med Sci Sports 2016): fit the
+  mono-exponential model to split times or a radar trace, derive F_H(t) from
+  the model, then the linear F-v regression. Works with as few as 5 splits.
+
+  ``"samozino"`` (default)
+      Linear regression of F_H on v, sampled every ``dt`` from 0 to the time
+      the athlete reaches ``until`` × MSS. This is the original computation.
+  ``"analytic"``
+      F0 is the force at v = 0 and V0 the exact root of F_H(v) = 0. Identical
+      to {shorts} ``create_FVP()``, used in the tests to check this package
+      against the R implementation.
+
+* **Direct** (:func:`force_velocity_from_trace`): when a sensor gives the
+  speed itself (radar, laser, LPS/GPS), F_H is computed from the *measured*
+  speed and its derivative, and the linear F-v regression is fitted to those
+  points. No exponential shape is imposed, and the R² of the regression tests
+  how linear the athlete's profile really is.
 """
 
 from __future__ import annotations
@@ -54,7 +65,9 @@ class ForceVelocityProfile:
     Forces in N, velocities in m/s, powers in W; ``*_rel`` per kg of body mass.
     ``sfv_rel`` is the slope of the relative profile (N/kg per m/s, negative).
     ``rf_max`` (%) and ``drf`` (% per m/s) describe force orientation; they are
-    only computed by the ``"samozino"`` method.
+    not computed by the ``"analytic"`` method. ``r2`` is the R² of the linear
+    F-v regression: close to 1 by construction for the model-based route,
+    an actual test of linearity for the direct route.
     """
 
     body_mass: float
@@ -64,6 +77,7 @@ class ForceVelocityProfile:
     rf_max: float | None = None
     drf: float | None = None
     k_air: float = 0.0
+    r2: float | None = None
     table: dict[str, np.ndarray] = field(default_factory=dict, repr=False)
 
     @property
@@ -92,6 +106,8 @@ class ForceVelocityProfile:
         ]
         if self.rf_max is not None:
             lines += [f"  RFmax {self.rf_max:8.1f} %", f"  DRF   {self.drf:8.2f} % per m/s"]
+        if self.r2 is not None:
+            lines.append(f"  R²    {self.r2:8.3f}   (linearity of the F-v regression)")
         return "\n".join(lines)
 
 
@@ -142,17 +158,99 @@ def force_velocity_profile(
     a = model.acceleration_at_time(t, mss, mac)
     rel_v = v - wind_velocity
     f_h = body_mass * a + k * np.sign(rel_v) * rel_v**2
+    return _linear_profile(t, v, a, f_h, body_mass, k, method, rf_from)
+
+
+def _linear_profile(t, v, a, f_h, body_mass, k, method, rf_from) -> ForceVelocityProfile:
+    """Linear F-v regression, ratio of forces, and the profile object."""
     slope, f0 = np.polyfit(v, f_h, 1)
+    if slope >= 0:
+        raise ValueError("force does not decrease with velocity: is this an acceleration phase?")
     v0 = -f0 / slope
+    pred = f0 + slope * v
+    r2 = 1 - np.sum((f_h - pred) ** 2) / np.sum((f_h - f_h.mean()) ** 2)
 
     rf = 100.0 * f_h / np.sqrt(f_h**2 + (body_mass * G) ** 2)
-    m = t >= rf_from
+    m = (t - t[0]) >= rf_from
     drf = np.polyfit(v[m], rf[m], 1)[0] if m.sum() > 2 else float("nan")
     return ForceVelocityProfile(
         body_mass=body_mass, f0=float(f0), v0=float(v0), method=method,
-        rf_max=float(rf[m].max()) if m.any() else None, drf=float(drf), k_air=k,
+        rf_max=float(rf[m].max()) if m.any() else None, drf=float(drf), k_air=k, r2=float(r2),
         table={"time": t, "velocity": v, "acceleration": a, "force": f_h, "power": f_h * v, "rf": rf},
     )
+
+
+def force_velocity_from_trace(
+    time: np.ndarray,
+    velocity: np.ndarray,
+    body_mass: float,
+    *,
+    acceleration: np.ndarray | None = None,
+    body_height: float = 1.75,
+    air_temperature: float = 25.0,
+    barometric_pressure: float = 760.0,
+    wind_velocity: float = 0.0,
+    smoothing_s: float = 0.5,
+    v_start: float = 0.5,
+    until: float = 0.95,
+    end_time: float | None = None,
+    rf_from: float = 0.3,
+) -> ForceVelocityProfile:
+    """Force-velocity profile straight from a measured speed trace (direct route).
+
+    No mono-exponential model: at every sample of the acceleration phase,
+    F_H = m · a + F_air with the *measured* speed, then the linear F-v
+    regression. Use it when a sensor gives the speed itself (radar, laser,
+    LPS/GPS through :func:`sprintfv.positions_to_kinematics`).
+
+    Parameters
+    ----------
+    time, velocity:
+        One sprint from a standing start (s, m/s), cleaned beforehand
+        (:func:`sprintfv.clean_radar` for a radar).
+    acceleration:
+        Acceleration from the sensor or a Kalman filter (m/s²). When omitted,
+        it is the derivative of a Savitzky-Golay fit over ``smoothing_s``.
+    v_start:
+        Samples below this speed (start posture, first push) are left out.
+    until:
+        Samples above this fraction of the peak speed are left out: near the
+        plateau, acceleration is tiny and dominated by noise.
+    end_time:
+        Time at which the acceleration phase ends; found with
+        :func:`sprintfv.acceleration_end` when omitted.
+    """
+    from scipy.signal import savgol_filter
+
+    from .signal import acceleration_end
+
+    if body_mass <= 0:
+        raise ValueError("body_mass must be positive")
+    t = np.asarray(time, dtype=float).ravel()
+    v = np.asarray(velocity, dtype=float).ravel()
+    ok = np.isfinite(t) & np.isfinite(v)
+    order = np.argsort(t[ok])
+    t, v = t[ok][order], v[ok][order]
+    if acceleration is None:
+        dt = float(np.median(np.diff(t)))
+        win = max(5, int(round(smoothing_s / dt)) | 1)
+        if win >= t.size:
+            raise ValueError("trace too short for the smoothing window")
+        a = savgol_filter(v, win, 2, deriv=1, delta=dt)
+    else:
+        a = np.asarray(acceleration, dtype=float).ravel()[ok][order]
+
+    t_end = end_time if end_time is not None else t[acceleration_end(t, v)]
+    vmax = np.nanmax(v[t <= t_end]) if np.any(t <= t_end) else np.nanmax(v)
+    m = (t <= t_end) & (v >= v_start) & (v <= until * vmax) & np.isfinite(a)
+    if m.sum() < 10:
+        raise ValueError(f"only {int(m.sum())} samples in the acceleration phase: at least 10 are needed")
+    t, v, a = t[m], v[m], a[m]
+
+    k = air_resistance_coefficient(body_mass, body_height, air_temperature, barometric_pressure)
+    rel_v = v - wind_velocity
+    f_h = body_mass * a + k * np.sign(rel_v) * rel_v**2
+    return _linear_profile(t, v, a, f_h, body_mass, k, "direct", rf_from)
 
 
 # ------------------------------------------------------------ optimal profile
