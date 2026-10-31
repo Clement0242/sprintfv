@@ -31,7 +31,7 @@
     <a class="bouton creux" href="#start">Get started</a>
   </div>
   <div class="chiffres">
-    <div><b>38</b><span>tests, run on Python 3.10, 3.12 and 3.13 on every push</span></div>
+    <div><b>41</b><span>tests, run on Python 3.10, 3.12 and 3.13 on every push</span></div>
     <div><b>100 %</b><span>of the values published in the {shorts} README recovered</span></div>
     <div><b>10<sup>−12</sup></b><span>largest gap between its Kalman filter and filterpy's</span></div>
     <div><b>2</b><span>dependencies: NumPy and SciPy</span></div>
@@ -50,6 +50,12 @@ fv  = s.force_velocity_profile(fit.mss, fit.mac, body_mass=75, body_height=1.72)
 opt = s.optimal_profile(fv, distance=30)                 # FV imbalance +44 %: train velocity</code></pre>
   <div class="prose"><p>Or from the command line:
   <code>sprintfv radar sprint.csv --mass 75 --height 1.72 --distance 30 --clean</code>.</p></div>
+  <h3>A designed PDF report, in one option</h3>
+  <div class="prose"><p>Add <code>--report report.pdf</code> (or call <code>sprint_report</code>): three A4 pages with the key
+  figures, an automatic reading, the sprint, force, power and orientation, the optimal profile and the method. French or English;
+  your organisation and logo are options.</p></div>
+  <div class="boutons"><a class="bouton creux" href="example_report_en.pdf">Example report (EN)</a>
+  <a class="bouton creux" href="example_report_fr.pdf">Exemple de rapport (FR)</a></div>
 </div></section>
 
 <section id="fvp"><div class="enveloppe">

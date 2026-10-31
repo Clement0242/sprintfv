@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section>
+  <div class="titre-section">{{ outlined_number(1) | safe }}<span class="triangle"></span><h2>{{ L.summary }}</h2><span class="filet"></span></div>
+  <div class="chiffres">
+    <div class="chiffre accent"><div class="val">{{ fv.f0_rel | fmt(2) }}<small>N/kg</small></div><div class="lab">F0</div><div class="sub">{{ fv.f0 | fmt(0) }} N</div></div>
+    <div class="chiffre"><div class="val">{{ fv.v0 | fmt(2) }}<small>m/s</small></div><div class="lab">V0</div><div class="sub">{{ (fv.v0 * 3.6) | fmt(1) }} km/h</div></div>
+    <div class="chiffre"><div class="val">{{ fv.pmax_rel | fmt(1) }}<small>W/kg</small></div><div class="lab">Pmax</div><div class="sub">{{ fv.pmax | fmt(0) }} W</div></div>
+    <div class="chiffre"><div class="val">{{ fv.sfv_rel | fmt(2) }}</div><div class="lab">{{ L.sfv }}</div><div class="sub">N·s/m/kg</div></div>
+    {% if fv.rf_max is not none %}
+    <div class="chiffre"><div class="val">{{ fv.rf_max | fmt(1) }}<small>%</small></div><div class="lab">RFmax</div><div class="sub">DRF {{ fv.drf | fmt(1) }} %/(m/s)</div></div>
+    {% endif %}
+  </div>
+
+  <div class="encadre">
+    <div class="etiquette">{{ L.reading }}</div>
+    {% for line in reading %}<p>{{ line | safe }}</p>{% endfor %}
+  </div>
+</section>
+
+<section>
+  <div class="titre-section">{{ outlined_number(2) | safe }}<span class="triangle"></span><h2>{{ L.sprint }}</h2><span class="filet"></span></div>
+  <div class="deux">
+    <figure><img src="{{ fig_sprint }}" alt=""><figcaption>{{ L.cap_sprint }}</figcaption></figure>
+    <div>
+      <h3><span class="badge">2.1</span>{{ L.model }}</h3>
+      <table>
+        <tr><th>{{ L.param }}</th><th class="num">{{ L.value }}</th></tr>
+        <tr><td>MSS ({{ L.mss }})</td><td class="num">{{ fit.mss | fmt(2) }} m/s</td></tr>
+        <tr><td>MAC ({{ L.mac }})</td><td class="num">{{ fit.mac | fmt(2) }} m/s²</td></tr>
+        <tr><td>τ</td><td class="num">{{ fit.tau | fmt(3) }} s</td></tr>
+        {% for k, v in fit.corrections.items() %}<tr><td>{{ L.get(k, k) }}</td><td class="num">{{ v | fmt(3) }}</td></tr>{% endfor %}
+        {% if fit.observed.size %}<tr><td>R² · RMSE</td><td class="num">{{ fit.r2 | fmt(4) }} · {{ fit.rmse | fmt(3) }}</td></tr>{% endif %}
+      </table>
+      <h3><span class="badge">2.2</span>{{ L.splits }}</h3>
+      <table>
+        <tr><th>{{ L.distance }}</th><th class="num">{{ L.time }}</th><th class="num">{{ L.speed }}</th></tr>
+        {% for d, tt, vv in splits %}<tr><td>{{ d | fmt(0) }} m</td><td class="num">{{ tt | fmt(2) }} s</td><td class="num">{{ vv | fmt(2) }} m/s</td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="titre-section">{{ outlined_number(3) | safe }}<span class="triangle"></span><h2>{{ L.force }}</h2><span class="filet"></span></div>
+  <p class="chapeau">{{ L.force_intro }}</p>
+  <figure><img src="{{ fig_fv }}" alt=""><figcaption>{{ L.cap_fv }}</figcaption></figure>
+  {% if fig_rf %}<figure><img src="{{ fig_rf }}" alt=""><figcaption>{{ L.cap_rf }}</figcaption></figure>{% endif %}
+</section>
+
+{% if opt %}
+<section>
+  <div class="titre-section">{{ outlined_number(4) | safe }}<span class="triangle"></span><h2>{{ L.optimal }}</h2><span class="filet"></span></div>
+  <div class="deux">
+    <figure><img src="{{ fig_opt }}" alt=""><figcaption>{{ L.cap_opt }}</figcaption></figure>
+    <div>
+      <div class="chiffres">
+        <div class="chiffre accent"><div class="val">{{ opt.fv_imbalance | fmt(0) }}<small>%</small></div><div class="lab">{{ L.imbalance }}</div><div class="sub">{{ imbalance_label }}</div></div>
+        <div class="chiffre"><div class="val">{{ opt.time_gain | fmt(3) }}<small>s</small></div><div class="lab">{{ L.gain }}</div><div class="sub">{{ L.over }} {{ opt.distance | fmt(0) }} m</div></div>
+      </div>
+      <table>
+        <tr><th></th><th class="num">{{ L.actual }}</th><th class="num">{{ L.optimal_short }}</th></tr>
+        <tr><td>{{ L.sfv }}</td><td class="num">{{ opt.sfv_rel | fmt(2) }}</td><td class="num">{{ opt.sfv_opt | fmt(2) }}</td></tr>
+        <tr><td>F0 (N/kg)</td><td class="num">{{ fv.f0_rel | fmt(2) }}</td><td class="num">{{ opt.f0_opt_rel | fmt(2) }}</td></tr>
+        <tr><td>V0 (m/s)</td><td class="num">{{ fv.v0 | fmt(2) }}</td><td class="num">{{ opt.v0_opt | fmt(2) }}</td></tr>
+        <tr><td>{{ L.time }} {{ opt.distance | fmt(0) }} m</td><td class="num">{{ opt.time_actual | fmt(3) }} s</td><td class="num">{{ opt.time_optimal | fmt(3) }} s</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section>
+  <div class="titre-section">{{ outlined_number(5 if opt else 4) | safe }}<span class="triangle"></span><h2>{{ L.method }}</h2><span class="filet"></span></div>
+  <div class="methode">{% for p in method %}<p>{{ p | safe }}</p>{% endfor %}</div>
+  <ul class="refs">{% for r in references %}<li>{{ r }}</li>{% endfor %}</ul>
+</section>
+{% endblock %}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<span class="org-name">{{ organisation or tool }}</span>
+<span class="doc-title">{{ title }}</span>
+
+<header class="bandeau">
+  <svg class="arcs" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><linearGradient id="or" x1="0" x2="1"><stop offset="0" stop-color="#C59F69"/><stop offset=".45" stop-color="#F9E9CA"/><stop offset="1" stop-color="#B38D52"/></linearGradient></defs>
+    <g fill="none" stroke="url(#or)" stroke-width="2.2">
+      <path d="M20 200 Q150 20 300 40"/><path d="M60 200 Q170 60 300 80"/><path d="M110 200 Q200 105 300 122"/>
+      <path d="M150 0 L185 200"/><path d="M215 0 L230 200"/><path d="M270 0 L272 200"/>
+    </g>
+  </svg>
+  <div class="haut">
+    <div>
+      <p class="surtitre">{{ kicker }}</p>
+      <h1>{{ title_html | safe }}</h1>
+    </div>
+    {% if logo_uri %}<div class="logo"><img src="{{ logo_uri }}" alt=""></div>{% endif %}
+  </div>
+  <div class="meta">
+    {% if athlete %}<div>{{ t.athlete }}<b>{{ athlete }}</b></div>{% endif %}
+    <div>{{ t.date }}<b>{{ test_date or today }}</b></div>
+    {% if test %}<div>{{ t.test }}<b>{{ test }}</b></div>{% endif %}
+    {% for k, v in (extra_meta or {}).items() %}<div>{{ k }}<b>{{ v }}</b></div>{% endfor %}
+  </div>
+</header>
+<div class="or"></div>
+
+{% block content %}{% endblock %}
+
+<p class="mention">{{ t.generated }} {{ tool }} {{ version }}{% if organisation %} · {{ organisation }}{% endif %}.
+{{ disclaimer }}</p>
+</body>
+</html>

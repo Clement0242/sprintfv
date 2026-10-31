@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import csv
 import sys
+from pathlib import Path
 
 import numpy as np
 
@@ -40,10 +41,17 @@ def _profile(args, f: fit.SprintFit, trace=None) -> None:
         else:
             p = fvp.force_velocity_profile(f.mss, f.mac, args.mass, method=args.fv_method, **air)
         print(p.summary())
+        o = None
         if args.distance:
             o = fvp.optimal_profile(p, args.distance)
             print(f"Optimal profile over {args.distance:g} m: SFV_opt {o.sfv_opt:.3f}, "
                   f"FV imbalance {o.fv_imbalance:+.0f} %, potential gain {o.time_gain:.3f} s")
+        if args.report:
+            from .report import sprint_report
+            path = sprint_report(f, p, args.report, athlete=args.athlete, optimal=o, trace=trace,
+                                 body_height=args.height, lang=args.lang, organisation=args.organisation,
+                                 logo=args.logo, test=Path(args.file).name)
+            print(f"Report written: {path}")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -58,6 +66,11 @@ def main(argv: list[str] | None = None) -> None:
         p.add_argument("--fv-method", choices=["samozino", "analytic", "direct"], default="samozino",
                        help="direct: force from the measured speed itself, no exponential model (radar only)")
         p.add_argument("--distance", type=float, help="distance (m) for the optimal profile")
+        p.add_argument("--report", metavar="PDF", help="also write a designed PDF report (needs sprintfv[report])")
+        p.add_argument("--athlete", help="athlete name printed on the report")
+        p.add_argument("--lang", choices=["fr", "en"], default="fr", help="report language")
+        p.add_argument("--organisation", help="your organisation, printed on the report")
+        p.add_argument("--logo", help="your logo (PNG/SVG), printed on the report")
 
     r = sub.add_parser("radar", help="radar or laser gun: time, velocity")
     r.add_argument("file")

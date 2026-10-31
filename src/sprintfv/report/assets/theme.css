@@ -1,0 +1,121 @@
+/* PDF report theme (WeasyPrint). Navy / red / gold palette, geometric sans
+   (Jost, a free Futura-like face), outlined section numbers, gold rules.
+   No organisation logo by default: the report is the user's, who can add
+   their own logo and name. */
+
+@font-face { font-family: "Jost"; src: url("Jost.ttf"); font-weight: 100 900; font-style: normal; }
+@font-face { font-family: "Jost"; src: url("Jost-Italic.ttf"); font-weight: 100 900; font-style: italic; }
+
+:root {
+  --navy: #2C2F65; --navy-deep: #1E2150; --red: #C5243D;
+  --gold: #C59F69; --gold-light: #E1CA88; --gold-pale: #F9E9CA; --gold-dark: #B38D52;
+  --ink: #1D2047; --text: #3A3D63; --mut: #7A7D9C; --line: #DCDCE6; --light: #F4F4F8;
+  --gold-gradient: linear-gradient(90deg, #C59F69 0%, #E1CA88 22%, #F9E9CA 45%, #EDD89F 62%, #B38D52 82%, #D6BD7B 100%);
+}
+
+@page {
+  size: A4;
+  margin: 17mm 15mm 18mm 15mm;
+  @bottom-left {
+    content: string(org) "  ·  " string(doc-title);
+    font: 500 7pt "Jost"; color: var(--navy); letter-spacing: .04em; text-transform: uppercase;
+  }
+  @bottom-right {
+    content: "P. " counter(page) " / " counter(pages);
+    font: 600 7pt "Jost"; color: var(--navy); letter-spacing: .12em;
+  }
+}
+@page :first { margin-top: 0; }
+
+html { font-family: "Jost", sans-serif; font-size: 9.4pt; line-height: 1.45; color: var(--text); }
+body { margin: 0; }
+/* Strings for the running footer: WeasyPrint only reads rendered elements,
+   so these are kept in the flow but take no space. */
+.org-name { string-set: org content(); font-size: 0; line-height: 0; position: absolute; }
+.doc-title { string-set: doc-title content(); font-size: 0; line-height: 0; position: absolute; }
+
+/* --- Cover band ---------------------------------------------------------- */
+.bandeau {
+  margin: 0 -15mm; padding: 13mm 15mm 9mm; background: var(--navy); color: #fff;
+  position: relative; overflow: hidden;
+}
+.bandeau .arcs { position: absolute; right: -14mm; top: -8mm; width: 76mm; height: 52mm; opacity: .45; }
+.bandeau .haut, .bandeau .meta { position: relative; }
+.bandeau .haut { display: flex; justify-content: space-between; align-items: flex-start; }
+.bandeau .logo img { max-height: 15mm; max-width: 45mm; }
+.bandeau .surtitre {
+  font-size: 7.4pt; font-weight: 600; letter-spacing: .28em; text-transform: uppercase; color: var(--gold-light);
+  margin: 0 0 3mm;
+}
+.bandeau h1 { font-size: 25pt; line-height: 1.02; font-weight: 800; margin: 0 0 4mm; text-transform: uppercase; letter-spacing: .01em; }
+.bandeau h1 em { font-style: normal; color: var(--gold-light); }
+.bandeau .meta { display: flex; gap: 9mm; margin-top: 5mm; }
+.bandeau .meta div { font-size: 7.2pt; letter-spacing: .14em; text-transform: uppercase; color: #C9CBE6; }
+.bandeau .meta b { display: block; font-size: 11pt; letter-spacing: 0; text-transform: none; color: #fff; font-weight: 600; margin-top: .6mm; }
+.or { height: 2.4mm; margin: 0 -15mm 7mm; background: var(--gold-gradient); }
+
+/* --- Sections ------------------------------------------------------------ */
+section { margin: 0 0 4mm; }
+.titre-section { display: flex; align-items: center; gap: 3.5mm; margin: 2mm 0 3.5mm; break-after: avoid; }
+.titre-section svg { width: 15mm; height: 11mm; flex: none; }
+.titre-section h2 {
+  margin: 0; font-size: 12.5pt; font-weight: 800; color: var(--navy); text-transform: uppercase; letter-spacing: .06em;
+}
+.titre-section .triangle { width: 0; height: 0; border-top: 2.2mm solid transparent; border-bottom: 2.2mm solid transparent;
+  border-left: 3mm solid var(--gold); }
+.titre-section .filet { flex: 1; height: .5mm; background: var(--gold-gradient); }
+h3 { font-size: 10pt; font-weight: 700; color: var(--navy); margin: 4mm 0 2mm; break-after: avoid; }
+.badge {
+  display: inline-block; background: var(--gold-gradient); color: var(--navy); font-weight: 800; font-size: 8pt;
+  padding: .3mm 1.8mm; transform: skew(-9deg); margin-right: 2mm;
+}
+p { margin: 0 0 2.5mm; }
+.chapeau { font-size: 10.2pt; color: var(--ink); }
+
+/* --- Key figures ----------------------------------------------------------- */
+.chiffres { display: flex; flex-wrap: wrap; gap: 3mm; margin: 2mm 0 5mm; }
+.chiffre {
+  flex: 1 1 0; min-width: 26mm; background: var(--light); padding: 3mm 3.4mm 2.6mm; border-top: .8mm solid var(--gold);
+}
+.chiffre .val { font-size: 19pt; font-weight: 700; color: var(--navy); line-height: 1; }
+.chiffre .val small { font-size: 8pt; font-weight: 500; color: var(--mut); margin-left: .6mm; }
+.chiffre .lab { font-size: 6.8pt; letter-spacing: .12em; text-transform: uppercase; color: var(--mut); margin-top: 1.6mm; }
+.chiffre .sub { font-size: 7.4pt; color: var(--text); margin-top: .6mm; }
+.chiffre.accent { background: var(--navy); border-top-color: var(--red); }
+.chiffre.accent .val, .chiffre.accent .sub { color: #fff; }
+.chiffre.accent .val small, .chiffre.accent .lab { color: var(--gold-light); }
+
+/* --- Figures --------------------------------------------------------------- */
+figure { margin: 1mm 0 4mm; break-inside: avoid; }
+figure img { width: 100%; display: block; }
+figcaption { font-size: 7.6pt; color: var(--mut); margin-top: 1.4mm; }
+.deux { display: flex; gap: 5mm; }
+.deux > * { flex: 1 1 0; min-width: 0; }
+
+/* --- Reading box ----------------------------------------------------------- */
+.encadre {
+  background: var(--light); border-left: 1.1mm solid var(--red); padding: 3.4mm 4.5mm; margin: 2mm 0 5mm; break-inside: avoid;
+}
+.encadre .etiquette { font-size: 6.8pt; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--red); margin-bottom: 1.4mm; }
+.encadre p { margin: 0 0 1.6mm; color: var(--ink); }
+.encadre p:last-child { margin: 0; }
+
+/* --- Tables ------------------------------------------------------------------ */
+table { width: 100%; border-collapse: collapse; font-size: 8pt; margin: .5mm 0 3mm; break-inside: avoid; }
+th { background: var(--navy); color: #fff; font-weight: 600; text-align: left; padding: 1.2mm 2.2mm; font-size: 7pt;
+  letter-spacing: .08em; text-transform: uppercase; }
+td { padding: 1mm 2.2mm; border-bottom: .25mm solid var(--line); }
+tr:nth-child(even) td { background: #FAFAFC; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pastille { display: inline-block; padding: .2mm 2mm; border-radius: 3mm; font-size: 7pt; font-weight: 600; }
+.pastille.ok { background: #E3F1E8; color: #1F6B43; }
+.pastille.attention { background: #FBEFD9; color: #8A5300; }
+.pastille.alerte { background: #F7E1E5; color: var(--red); }
+
+/* --- Method & references ------------------------------------------------- */
+.methode { font-size: 7.8pt; color: var(--text); columns: 2; column-gap: 7mm; }
+.methode p { break-inside: avoid; }
+.refs { font-size: 7pt; color: var(--mut); margin: 2mm 0 0; padding-left: 4mm; }
+.refs li { margin-bottom: .8mm; }
+.saut { break-before: page; }
+.mention { font-size: 6.8pt; color: var(--mut); margin-top: 4mm; border-top: .25mm solid var(--line); padding-top: 2mm; }

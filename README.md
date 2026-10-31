@@ -85,6 +85,29 @@ On Morin's sample sprint the direct route gives a higher F0 (7.7 against
 measured acceleration is stronger. On a simulated sprint the two routes agree
 within 3 %. Both are kept on purpose: comparing them is informative.
 
+## A designed PDF report
+
+```bash
+pip install "sprintfv[report] @ git+https://github.com/Clement0242/sprintfv"
+sprintfv radar sprint.csv --mass 75 --height 1.72 --distance 30 --report report.pdf --athlete "A. Martin"
+```
+
+```python
+from sprintfv.report import sprint_report
+sprint_report(fit, fv, "report.pdf", athlete="A. Martin", optimal=opt, trace=(t, v), lang="en")
+```
+
+Three A4 pages, in French (default) or English:
+
+1. Key figures and an automatic reading.
+2. The sprint with its fitted model and modelled splits.
+3. Force, power and ratio of forces, then the optimal profile, the method and
+   the references.
+
+Your organisation and logo are options (`organisation=`, `logo=`); nothing is
+added by default. Examples: [French](docs/example_report_fr.pdf) ·
+[English](docs/example_report_en.pdf).
+
 ## In-situ profiles: four methods on one practice
 
 ![Four in-situ methods](docs/in_situ_methods.png)
@@ -128,7 +151,7 @@ profile is a monitoring tool that complements a sprint test, not a substitute.
 
 ## Validation
 
-`pytest` runs 38 tests. They include:
+`pytest` runs 41 tests. They include:
 
 * **Against {shorts}:** the README values for timing gates (with and without
   corrections), radar (with and without observed MSS) and the force-velocity
@@ -171,6 +194,9 @@ GPS/LPS d'entraînement et de match.
   (F. Fenaux et C. Verdier, enveloppe robuste qui sépare l'ordonnée à l'origine A0 du pic
   réellement produit), Tukey et intervalle de prédiction. Chaque constante est
   un paramètre.
+* **Rapport PDF** soigné en un appel (`sprint_report`) ou une option de la
+  ligne de commande (`--report rapport.pdf`) : chiffres clés, lecture
+  automatique, figures, profil optimal, méthode et références.
 * **Nettoyage du signal radar** (km/h, zéros isolés, valeurs aberrantes,
   Butterworth) et détection de la fin de l'accélération.
 

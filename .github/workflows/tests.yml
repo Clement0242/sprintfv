@@ -11,5 +11,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - run: sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0   # WeasyPrint (PDF reports)
       - run: pip install -e ".[test]"
       - run: pytest -q
